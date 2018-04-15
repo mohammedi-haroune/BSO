@@ -8,17 +8,17 @@ import java.util.Set;
 public class Main {
     public static void main(String[] args) throws IOException {
         BSO<InstanceSAT, SATSolution> bso = new BSO<>(
-                2500,
-                2,
-                10,
-                10,
-                100
+                200,
+                7,
+                20,
+                3,
+                15
         );
-        String path = "/home/mohammedi/IdeaProjects/BSO/benchmarks/UF75.325.100/uf75-03.cnf";
+        String path = "/home/mohammedi/IdeaProjects/BSO/benchmarks/UF75.325.100/uf75-06.cnf";
         InstanceSAT problem = InstanceSAT.fromCNF(path);
         SATSolution beeInit = new SATSolution(problem);
 
-        //System.out.println("beeInit = " + beeInit.getNeighbors(4).size());
+        System.out.println("beeInit = " + beeInit);
 
         SATSolution solution = bso.run(beeInit);
         System.out.println("solution = " + solution);

@@ -1,10 +1,7 @@
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class BSO<P extends Problem, T extends Solution<P, T>> {
+public class BSO<P extends Problem, S extends Solution<P, S>> {
     private int maximumNumberOfIterations;
     private int parameterFlip;
     private int numberOfBees;
@@ -19,29 +16,31 @@ public class BSO<P extends Problem, T extends Solution<P, T>> {
         this.numberOfLocalSearchIterations = numberOfLocalSearchIterations;
     }
 
-    public T run(T beeInit) {
-        HashSet<T> taboo = new HashSet<>();
+    public S run(S beeInit) {
+        HashSet<S> taboo = new HashSet<>();
         int numberOfChanges = maximumNumberOfChanges;
-        T sref = beeInit;
+        S sref = beeInit;
+        S best = sref;
         int i = 0;
-        while (i < maximumNumberOfIterations && !sref.problem.isOptimal(sref)) {
+        while (i < maximumNumberOfIterations && !sref.problem.isOptimal(best)) {
             System.out.println("sref.quality() = " + sref.quality() + " ,sref.diversity() = " + sref.diversity(taboo) + " ,taboo = " + taboo.size());
             taboo.add(sref);
-            List<T> dances =
-            sref.getNeighbors(parameterFlip)
+            List<S> dances =
+            sref.getSerachPoints(numberOfBees)
                     .stream()
+                    .filter(x -> !taboo.contains(x))
                     .sorted(Comparator.comparingDouble(sol -> -sol.quality()))
                     .limit(numberOfBees)
-                    .map(solution -> solution.search(parameterFlip, numberOfLocalSearchIterations))
+                    .map(solution -> solution.search(numberOfLocalSearchIterations, taboo))
                     .collect(Collectors.toList());
 
-            T bestQuality = dances.stream().max(Comparator.comparingDouble(Solution::quality)).orElse(null);
-            T bestDiversity = dances.stream().max(Comparator.comparingDouble(s -> s.diversity(taboo))).orElse(null);
+            S bestQuality = dances.stream().filter(Objects::nonNull).max(Comparator.comparingDouble(Solution::quality)).orElse(null);
+            S bestDiversity = dances.stream().filter(Objects::nonNull).max(Comparator.comparingDouble(s -> s.diversity(taboo))).orElse(null);
 
-            System.out.println("bestDiversity.distance(sref) = " + bestDiversity.distance(sref));
-            System.out.println("bestQuality.distance(sref) = " + bestQuality.distance(sref));
+            System.out.println("bestDiversity diversity = " + bestDiversity.diversity(taboo));
+            System.out.println("bestQuality diversity = " + bestQuality.diversity(taboo));
 
-            if (bestQuality.quality() - sref.quality() > 0) sref = bestQuality;
+            if (bestQuality.quality() > sref.quality()) sref = bestQuality;
             else {
                 numberOfChanges--;
                 if (numberOfChanges > 0) sref = bestQuality;
@@ -50,8 +49,9 @@ public class BSO<P extends Problem, T extends Solution<P, T>> {
                     numberOfChanges = maximumNumberOfChanges;
                 }
             }
+            if (best.quality() < sref.quality()) best = sref;
             i++;
         }
-        return sref;
+        return best;
     }
 }

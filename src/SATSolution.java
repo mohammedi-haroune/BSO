@@ -1,20 +1,15 @@
-import com.github.dakusui.combinatoradix.Combinator;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.*;
 
 public class SATSolution extends Solution<InstanceSAT, SATSolution> {
-    ArrayList<Boolean> literals;
+    BitSet literals;
 
     public SATSolution(InstanceSAT problem) {
         super(problem);
         int numVars = problem.variables.size();
-        literals = new ArrayList<>();
+        literals = new BitSet(numVars);
+        Random random = new Random();
         for (int i = 0; i < numVars; i++) {
-            literals.add(true);
+            literals.set(i, random.nextBoolean());
         }
     }
 
@@ -29,21 +24,37 @@ public class SATSolution extends Solution<InstanceSAT, SATSolution> {
                 '}';
     }
 
-     @Override
-     HashSet<SATSolution> getNeighbors(int flip) {
-         HashSet<SATSolution> neighbors = new HashSet<>();
-         int n = problem.variables.size();
-         for (int f = 1; f <= flip; f++) {
-             for (int i = 0; i < n / f; i++) {
-                 SATSolution solution = copy();
-                 for (int h = 0; h < f; h++)
-                     if (f * h + i < n)
-                         solution.literals.set(f * h + i, !literals.get(f * h + i));
-                 neighbors.add(solution);
-             }
-         }
-         return neighbors;
-     }
+    @Override
+    HashSet<SATSolution> getNeighbors() {
+
+        HashSet<SATSolution> neighbors = new HashSet<>();
+        for (int i = 0; i < problem.variables.size(); i++) {
+            SATSolution solution = this.copy();
+            solution.literals.flip(i);
+            neighbors.add(solution);
+        }
+        return neighbors;
+    }
+
+    @Override
+    Set<SATSolution> getSerachPoints(int nbBees) {
+        return getSearchPoints(nbBees, 5);
+    }
+
+    Set<SATSolution> getSearchPoints(int nbBees, int flip) {
+
+        HashSet<SATSolution> neighbors = new HashSet<>();
+        int n = problem.variables.size();
+        int k = n / flip;
+        for (int i = 0; i < flip; i++) {
+            SATSolution solution = copy();
+            for (int j = 0; flip * j + i < n; j++)
+                if (flip * j + i < n)
+                    solution.literals.set(flip * j + i, !literals.get(flip * j + i));
+            neighbors.add(solution);
+        }
+        return neighbors;
+    }
 
 //     List<Integer> vars = problem.variables.stream().map(x -> x - 1).collect(Collectors.toList());
 //    @Override
@@ -63,9 +74,9 @@ public class SATSolution extends Solution<InstanceSAT, SATSolution> {
 //    }
 
 
-    public SATSolution copy() {
+    private SATSolution copy() {
         SATSolution solution = new SATSolution(problem);
-        solution.literals = new ArrayList<>(literals);
+        solution.literals = (BitSet) literals.clone();
         return solution;
     }
 
@@ -76,7 +87,9 @@ public class SATSolution extends Solution<InstanceSAT, SATSolution> {
 
     @Override
     double distance(SATSolution other) {
-        return other.literals.stream().filter(x -> !literals.contains(x)).count();
+        BitSet d = (BitSet) literals.clone();
+        d.xor(other.literals);
+        return d.cardinality();
     }
 
     @Override
